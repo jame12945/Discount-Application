@@ -20,6 +20,7 @@ class _DiscountPageState extends State<DiscountPage> {
   String _selectedItemCategory = '';
   int _customerPoints = 0;
   int _everyXThb = 0;
+  int? _hoveredIndex;
   int _discountYThb = 0;
   bool _isCouponSelected = false;
   bool _isOnTop1Selected = false;
@@ -52,100 +53,402 @@ class _DiscountPageState extends State<DiscountPage> {
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setState) {
-            return Container(
-              padding: EdgeInsets.all(16.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Selected Items',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: 16),
-                  Expanded(
-                    child: ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: itemCountMap.length,
-                      itemBuilder: (context, index) {
-                        String itemName = itemCountMap.keys.elementAt(index);
-                        int count = itemCountMap[itemName] ?? 0;
-                        Item item = _selectedItems
-                            .firstWhere((item) => item.name == itemName);
-                        return count > 0
-                            ? ListTile(
-                                title: Text(itemName),
-                                subtitle: Text('Price: ${item.price} THB'),
-                                trailing: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    IconButton(
-                                      icon: Icon(Icons.remove),
-                                      onPressed: () {
+            return FutureBuilder<Map<String, List<dynamic>>>(
+              future: _discountRepository.loadData(),
+              builder: (context, snapshot) {
+                if (snapshot.hasData) {
+                  List<DiscountCampaign> campaigns = (snapshot
+                              .data?['discountCampaigns'] as List<dynamic>?)
+                          ?.map(
+                              (campaign) => DiscountCampaign.fromJson(campaign))
+                          .toList() ??
+                      [];
+
+                  return SingleChildScrollView(
+                    child: Container(
+                      padding: EdgeInsets.all(16.0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Selected Items',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          SizedBox(height: 16),
+                          Container(
+                            height: 200,
+                            child: ListView.builder(
+                              shrinkWrap: true,
+                              itemCount: itemCountMap.length,
+                              itemBuilder: (context, index) {
+                                String itemName =
+                                    itemCountMap.keys.elementAt(index);
+                                int count = itemCountMap[itemName] ?? 0;
+                                Item item = _selectedItems.firstWhere(
+                                    (item) => item.name == itemName);
+                                return count > 0
+                                    ? ListTile(
+                                        title: Text(itemName),
+                                        subtitle:
+                                            Text('Price: ${item.price} THB'),
+                                        trailing: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            IconButton(
+                                              icon: Icon(Icons.remove),
+                                              onPressed: () {
+                                                setState(() {
+                                                  if (count > 1) {
+                                                    itemCountMap[itemName] =
+                                                        count - 1;
+                                                    totalPrice -= item.price;
+                                                    _selectedItems.remove(item);
+                                                  } else {
+                                                    itemCountMap
+                                                        .remove(itemName);
+                                                    totalPrice -= item.price;
+                                                    _selectedItems.remove(item);
+                                                  }
+                                                });
+                                              },
+                                            ),
+                                            Text(
+                                              '$count',
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                color: AppPallete.positiveText,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                            IconButton(
+                                              icon: Icon(Icons.add),
+                                              onPressed: () {
+                                                setState(() {
+                                                  itemCountMap[itemName] =
+                                                      count + 1;
+                                                  totalPrice += item.price;
+                                                  _selectedItems.add(item);
+                                                });
+                                              },
+                                            ),
+                                          ],
+                                        ),
+                                      )
+                                    : SizedBox.shrink();
+                              },
+                            ),
+                          ),
+                          SizedBox(height: 16),
+                          // Container(
+                          //   alignment: Alignment.topLeft,
+                          //   child: Padding(
+                          //     padding: EdgeInsets.only(left: 18),
+                          //     child: Text(
+                          //       'Total Price: ${totalPrice.toStringAsFixed(2)} THB',
+                          //       style: TextStyle(
+                          //         fontSize: 14,
+                          //         fontWeight: FontWeight.w500,
+                          //         color: AppPallete.greyColor,
+                          //       ),
+                          //     ),
+                          //   ),
+                          // ),
+                          // SizedBox(height: 16),
+                          DropdownButtonFormField<String>(
+                            padding: EdgeInsets.only(
+                              left: 16,
+                              right: 16,
+                              bottom: 4,
+                            ),
+                            value: _selectedCategory.isNotEmpty
+                                ? _selectedCategory
+                                : null,
+                            items: ['Coupon', 'On Top', 'Seasonal']
+                                .map((category) {
+                              return DropdownMenuItem<String>(
+                                value: category,
+                                child: Text(category),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedCategory = value!;
+                                _isCouponSelected =
+                                    _selectedCategory == 'Coupon';
+                                _isOnTop1Selected = false;
+                                _isOnTop2Selected = false;
+                                _isSeasonalSelected =
+                                    _selectedCategory == 'Seasonal';
+                              });
+                            },
+                            decoration:
+                                InputDecoration(labelText: 'Select Category'),
+                          ),
+                          if (_isCouponSelected)
+                            Column(
+                              children: [
+                                CheckboxListTile(
+                                  title: Text('Discount 120'),
+                                  value: _isOnTop1Selected,
+                                  onChanged: (selected) {
+                                    setState(() {
+                                      _isOnTop1Selected = selected!;
+                                      _isOnTop2Selected = false;
+                                    });
+                                  },
+                                ),
+                                CheckboxListTile(
+                                  title: Text('Discount 20%'),
+                                  value: _isOnTop2Selected,
+                                  onChanged: (selected) {
+                                    setState(() {
+                                      _isOnTop2Selected = selected!;
+                                      _isOnTop1Selected = false;
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
+                          if (_selectedCategory == 'On Top')
+                            DropdownButtonFormField<String>(
+                              padding: EdgeInsets.only(
+                                left: 16,
+                                right: 16,
+                              ),
+                              value: _selectedOnTopDiscount.isNotEmpty
+                                  ? _selectedOnTopDiscount
+                                  : null,
+                              items: [
+                                'Percentage discount by item category',
+                                'Discount by points'
+                              ].map((discount) {
+                                return DropdownMenuItem<String>(
+                                  value: discount,
+                                  child: Text(discount),
+                                );
+                              }).toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedOnTopDiscount = value!;
+                                });
+                              },
+                              decoration: InputDecoration(
+                                  labelText: 'Select On Top Discount'),
+                            ),
+                          if (_selectedCategory == 'On Top' &&
+                              _selectedOnTopDiscount ==
+                                  'Percentage discount by item category')
+                            Container(
+                              padding: EdgeInsets.only(left: 16, right: 16),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: TextFormField(
+                                      decoration: InputDecoration(
+                                          labelText: 'Discount Percentage'),
+                                      keyboardType: TextInputType.number,
+                                      onChanged: (value) {
                                         setState(() {
-                                          if (count > 1) {
-                                            itemCountMap[itemName] = count - 1;
-                                            totalPrice -= item.price;
-                                            _selectedItems.remove(item);
-                                          } else {
-                                            itemCountMap.remove(itemName);
-                                            totalPrice -= item.price;
-                                            _selectedItems.remove(item);
-                                          }
+                                          _percentageDiscount =
+                                              double.parse(value);
                                         });
                                       },
                                     ),
-                                    Text(
-                                      '$count',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: AppPallete.positiveText,
-                                        fontSize: 14,
+                                  ),
+                                  SizedBox(width: 16.0),
+                                  Expanded(
+                                    child: DropdownButtonFormField<String>(
+                                      value: _selectedItemCategory.isNotEmpty
+                                          ? _selectedItemCategory
+                                          : null,
+                                      items: _selectedItems
+                                          .map((item) => item.category)
+                                          .toSet()
+                                          .map((category) {
+                                        return DropdownMenuItem<String>(
+                                          value: category,
+                                          child: Text(category),
+                                        );
+                                      }).toList(),
+                                      onChanged: (value) {
+                                        setState(() {
+                                          _selectedItemCategory = value!;
+                                        });
+                                      },
+                                      decoration: InputDecoration(
+                                          labelText: 'Item Category'),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          if (_selectedCategory == 'On Top' &&
+                              _selectedOnTopDiscount == 'Discount by points')
+                            Container(
+                              padding: EdgeInsets.only(
+                                left: 16,
+                                right: 16,
+                              ),
+                              child: TextFormField(
+                                decoration: InputDecoration(
+                                    labelText: 'Customer Points'),
+                                keyboardType: TextInputType.number,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _customerPoints = int.parse(value);
+                                  });
+                                },
+                              ),
+                            ),
+                          if (_selectedCategory == 'Seasonal' &&
+                              _isSeasonalSelected)
+                            Container(
+                              padding: EdgeInsets.only(
+                                left: 16,
+                                right: 16,
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: TextFormField(
+                                      decoration: InputDecoration(
+                                          labelText: 'Discount Y THB'),
+                                      keyboardType: TextInputType.number,
+                                      onChanged: (value) {
+                                        setState(() {
+                                          _discountYThb = int.parse(value);
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                  SizedBox(width: 16.0),
+                                  Expanded(
+                                    child: TextFormField(
+                                      decoration: InputDecoration(
+                                          labelText: 'Every X THB'),
+                                      keyboardType: TextInputType.number,
+                                      onChanged: (value) {
+                                        setState(() {
+                                          _everyXThb = int.parse(value);
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                          SizedBox(height: 16),
+                          Text(
+                            _finalPrice != 0.0
+                                ? 'Final Price: ${_finalPrice.toStringAsFixed(2)} THB'
+                                : 'Final Price: ${totalPrice.toStringAsFixed(2)} THB',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          SizedBox(height: 16),
+                          ElevatedButton(
+                            child: Text(
+                              'Apply Discounts',
+                              style: TextStyle(
+                                color: Colors.green,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                            ),
+                            onPressed: () {
+                              List<DiscountCampaign> selectedCampaigns = [];
+
+                              if (_isCouponSelected) {
+                                if (_isOnTop1Selected) {
+                                  selectedCampaigns.add(campaigns.firstWhere(
+                                      (campaign) =>
+                                          campaign.name == 'Discount 120'));
+                                } else if (_isOnTop2Selected) {
+                                  selectedCampaigns.add(campaigns.firstWhere(
+                                      (campaign) =>
+                                          campaign.name == 'Discount 20%'));
+                                }
+                              } else if (_selectedCategory == 'On Top') {
+                                if (_selectedOnTopDiscount ==
+                                    'Percentage discount by item category') {
+                                  selectedCampaigns.add(
+                                    DiscountCampaign(
+                                      id: 0,
+                                      name:
+                                          'Percentage discount by item category',
+                                      category: 'On Top',
+                                      discountRules: DiscountRules(
+                                        type: 'percentage',
+                                        percentage: _percentageDiscount,
+                                        itemCategory: _selectedItemCategory,
                                       ),
                                     ),
-                                    IconButton(
-                                      icon: Icon(Icons.add),
-                                      onPressed: () {
-                                        setState(() {
-                                          itemCountMap[itemName] = count + 1;
-                                          totalPrice += item.price;
-                                          _selectedItems.add(item);
-                                        });
-                                      },
+                                  );
+                                } else if (_selectedOnTopDiscount ==
+                                    'Discount by points') {
+                                  selectedCampaigns.add(
+                                    DiscountCampaign(
+                                      id: 0,
+                                      name: 'Discount by points',
+                                      category: 'On Top',
+                                      discountRules: DiscountRules(
+                                        type: 'fixed',
+                                        amount: _customerPoints.toDouble(),
+                                      ),
                                     ),
-                                  ],
-                                ),
-                              )
-                            : SizedBox.shrink();
-                      },
-                    ),
-                  ),
-                  Container(
-                    alignment: Alignment.topLeft,
-                    child: Padding(
-                      padding: EdgeInsets.only(left: 18),
-                      child: Text(
-                        'Total Price: ${totalPrice.toStringAsFixed(2)} THB',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: AppPallete.greyColor,
-                        ),
+                                  );
+                                }
+                              } else if (_isSeasonalSelected) {
+                                selectedCampaigns.add(
+                                  DiscountCampaign(
+                                    id: 0,
+                                    name: 'Seasonal',
+                                    category: 'Seasonal',
+                                    discountRules: DiscountRules(
+                                      type: 'fixed',
+                                      everyX: _everyXThb,
+                                      discount: _discountYThb,
+                                    ),
+                                  ),
+                                );
+                              }
+
+                              double finalPrice =
+                                  _discountCalculator.calculateFinalPrice(
+                                totalPrice,
+                                selectedCampaigns,
+                                _selectedItems,
+                              );
+
+                              setState(() {
+                                _finalPrice = finalPrice;
+                              });
+                            },
+                          ),
+
+                          SizedBox(height: 16),
+                          ElevatedButton(
+                            child: Text('Close'),
+                            onPressed: () {
+                              Navigator.pop(context);
+                              setState(() {});
+                            },
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                  SizedBox(height: 16),
-                  ElevatedButton(
-                    child: Text('Close'),
-                    onPressed: () {
-                      Navigator.pop(context);
-                      setState(() {});
-                    },
-                  ),
-                ],
-              ),
+                  );
+                } else {
+                  return Center(child: CircularProgressIndicator());
+                }
+              },
             );
           },
         );
@@ -232,299 +535,54 @@ class _DiscountPageState extends State<DiscountPage> {
                           itemBuilder: (context, index) {
                             Item item = availableItems[index];
                             bool isSelected = _selectedItems.contains(item);
-                            return CheckboxListTile(
-                              value: isSelected,
-                              onChanged: isSelected
-                                  ? null
-                                  : (value) {
-                                      setState(() {
-                                        if (value ?? false) {
-                                          _selectedItems.add(item);
-                                        }
-                                      });
-                                    },
-                              title: Text(
-                                item.name,
-                                style: TextStyle(
-                                  decoration: isSelected
-                                      ? TextDecoration.lineThrough
-                                      : TextDecoration.none,
-                                ),
-                              ),
-                              subtitle: Text(
-                                'Price: ${item.price} THB',
-                                style: TextStyle(
-                                  decoration: isSelected
-                                      ? TextDecoration.lineThrough
-                                      : TextDecoration.none,
-                                ),
-                              ),
-                              activeColor:
-                                  isSelected ? Colors.grey : Colors.blue,
-                              checkColor:
-                                  isSelected ? Colors.grey[300] : Colors.white,
-                            );
-                          },
-                        ),
-                        DropdownButtonFormField<String>(
-                          padding: EdgeInsets.only(
-                            left: 16,
-                            right: 16,
-                            top: 10,
-                            bottom: 4,
-                          ),
-                          value: _selectedCategory.isNotEmpty
-                              ? _selectedCategory
-                              : null,
-                          items:
-                              ['Coupon', 'On Top', 'Seasonal'].map((category) {
-                            return DropdownMenuItem<String>(
-                              value: category,
-                              child: Text(category),
-                            );
-                          }).toList(),
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedCategory = value!;
-                              _isCouponSelected = _selectedCategory == 'Coupon';
-                              _isOnTop1Selected = false;
-                              _isOnTop2Selected = false;
-                              _isSeasonalSelected =
-                                  _selectedCategory == 'Seasonal';
-                            });
-                          },
-                          decoration:
-                              InputDecoration(labelText: 'Select Category'),
-                        ),
-                        if (_isCouponSelected)
-                          Column(
-                            children: [
-                              CheckboxListTile(
-                                title: Text('Discount 120'),
-                                value: _isOnTop1Selected,
-                                onChanged: (selected) {
-                                  setState(() {
-                                    _isOnTop1Selected = selected!;
-                                    _isOnTop2Selected = false;
-                                  });
-                                },
-                              ),
-                              CheckboxListTile(
-                                title: Text('Discount 20%'),
-                                value: _isOnTop2Selected,
-                                onChanged: (selected) {
-                                  setState(() {
-                                    _isOnTop2Selected = selected!;
-                                    _isOnTop1Selected = false;
-                                  });
-                                },
-                              ),
-                            ],
-                          ),
-                        if (_selectedCategory == 'On Top')
-                          DropdownButtonFormField<String>(
-                            padding: EdgeInsets.only(
-                              left: 16,
-                              right: 16,
-                            ),
-                            value: _selectedOnTopDiscount.isNotEmpty
-                                ? _selectedOnTopDiscount
-                                : null,
-                            items: [
-                              'Percentage discount by item category',
-                              'Discount by points'
-                            ].map((discount) {
-                              return DropdownMenuItem<String>(
-                                value: discount,
-                                child: Text(discount),
-                              );
-                            }).toList(),
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedOnTopDiscount = value!;
-                              });
-                            },
-                            decoration: InputDecoration(
-                                labelText: 'Select On Top Discount'),
-                          ),
-                        if (_selectedOnTopDiscount ==
-                            'Percentage discount by item category')
-                          Container(
-                            padding: EdgeInsets.only(left: 16, right: 16),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: TextFormField(
-                                    decoration: InputDecoration(
-                                        labelText: 'Discount Percentage'),
-                                    keyboardType: TextInputType.number,
-                                    onChanged: (value) {
-                                      setState(() {
-                                        _percentageDiscount =
-                                            double.parse(value);
-                                      });
-                                    },
-                                  ),
-                                ),
-                                SizedBox(width: 16.0),
-                                Expanded(
-                                  child: DropdownButtonFormField<String>(
-                                    value: _selectedItemCategory.isNotEmpty
-                                        ? _selectedItemCategory
-                                        : null,
-                                    items: itemCategories.map((category) {
-                                      return DropdownMenuItem<String>(
-                                        value: category,
-                                        child: Text(category),
-                                      );
-                                    }).toList(),
-                                    onChanged: (value) {
-                                      setState(() {
-                                        _selectedItemCategory = value!;
-                                      });
-                                    },
-                                    decoration: InputDecoration(
-                                        labelText: 'Item Category'),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        if (_selectedOnTopDiscount == 'Discount by points')
-                          Container(
-                            padding: EdgeInsets.only(
-                              left: 16,
-                              right: 16,
-                            ),
-                            child: TextFormField(
-                              decoration:
-                                  InputDecoration(labelText: 'Customer Points'),
-                              keyboardType: TextInputType.number,
-                              onChanged: (value) {
+                            return MouseRegion(
+                              cursor: SystemMouseCursors
+                                  .click, // Change the cursor to hand pointer
+                              onHover: (event) {
+                                // Change the background color on hover
                                 setState(() {
-                                  _customerPoints = int.parse(value);
+                                  _hoveredIndex = index;
                                 });
                               },
-                            ),
-                          ),
-                        if (_isSeasonalSelected)
-                          Container(
-                            padding: EdgeInsets.only(
-                              left: 16,
-                              right: 16,
-                            ),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: TextFormField(
-                                    decoration: InputDecoration(
-                                        labelText: 'Discount Y THB'),
-                                    keyboardType: TextInputType.number,
-                                    onChanged: (value) {
-                                      setState(() {
-                                        _discountYThb = int.parse(value);
-                                      });
-                                    },
+                              onExit: (event) {
+                                // Reset the background color when not hovering
+                                setState(() {
+                                  _hoveredIndex = null;
+                                });
+                              },
+                              child: ListTile(
+                                tileColor: index == _hoveredIndex
+                                    ? Colors.green
+                                    : null, // Change the background color on hover
+                                title: Text(
+                                  item.name,
+                                  style: TextStyle(
+                                    decoration: isSelected
+                                        ? TextDecoration.lineThrough
+                                        : TextDecoration.none,
                                   ),
                                 ),
-                                SizedBox(width: 16.0),
-                                Expanded(
-                                  child: TextFormField(
-                                    decoration: InputDecoration(
-                                        labelText: 'Every X THB'),
-                                    keyboardType: TextInputType.number,
-                                    onChanged: (value) {
-                                      setState(() {
-                                        _everyXThb = int.parse(value);
-                                      });
-                                    },
+                                subtitle: Text(
+                                  'Price: ${item.price} THB',
+                                  style: TextStyle(
+                                    decoration: isSelected
+                                        ? TextDecoration.lineThrough
+                                        : TextDecoration.none,
                                   ),
                                 ),
-                              ],
-                            ),
-                          ),
-                        SizedBox(height: 10),
-                        ElevatedButton(
-                          child: Text('Apply Discounts'),
-                          onPressed: () {
-                            double totalPrice = _selectedItems.fold(
-                                0, (sum, item) => sum + item.price);
-                            List<DiscountCampaign> selectedCampaigns = [];
-
-                            if (_isCouponSelected) {
-                              if (_isOnTop1Selected) {
-                                selectedCampaigns.add(campaigns.firstWhere(
-                                    (campaign) =>
-                                        campaign.name == 'Discount 120'));
-                              } else if (_isOnTop2Selected) {
-                                selectedCampaigns.add(campaigns.firstWhere(
-                                    (campaign) =>
-                                        campaign.name == 'Discount 20%'));
-                              }
-                            } else if (_selectedCategory == 'On Top') {
-                              if (_selectedOnTopDiscount ==
-                                  'Percentage discount by item category') {
-                                selectedCampaigns.add(
-                                  DiscountCampaign(
-                                    id: 0,
-                                    name:
-                                        'Percentage discount by item category',
-                                    category: 'On Top',
-                                    discountRules: DiscountRules(
-                                      type: 'percentage',
-                                      percentage: _percentageDiscount,
-                                      itemCategory: _selectedItemCategory,
-                                    ),
-                                  ),
-                                );
-                              } else if (_selectedOnTopDiscount ==
-                                  'Discount by points') {
-                                selectedCampaigns.add(
-                                  DiscountCampaign(
-                                    id: 0,
-                                    name: 'Discount by points',
-                                    category: 'On Top',
-                                    discountRules: DiscountRules(
-                                      type: 'fixed',
-                                      amount: _customerPoints.toDouble(),
-                                    ),
-                                  ),
-                                );
-                              }
-                            } else if (_isSeasonalSelected) {
-                              selectedCampaigns.add(
-                                DiscountCampaign(
-                                  id: 0,
-                                  name: 'Seasonal',
-                                  category: 'Seasonal',
-                                  discountRules: DiscountRules(
-                                    type: 'fixed',
-                                    everyX: _everyXThb,
-                                    discount: _discountYThb,
-                                  ),
-                                ),
-                              );
-                            }
-
-                            double finalPrice =
-                                _discountCalculator.calculateFinalPrice(
-                              totalPrice,
-                              selectedCampaigns,
-                              _selectedItems,
+                                onTap: isSelected
+                                    ? null
+                                    : () {
+                                        setState(() {
+                                          if (!isSelected) {
+                                            _selectedItems.add(item);
+                                          }
+                                        });
+                                      },
+                              ),
                             );
-
-                            setState(() {
-                              _finalPrice = finalPrice;
-                            });
                           },
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.only(top: 20.0),
-                          child: Text(
-                            'Final Price: ${_finalPrice.toStringAsFixed(2)} THB',
-                            style: TextStyle(fontSize: 18.0),
-                          ),
-                        ),
+                        )
                       ],
                     ),
                   );
