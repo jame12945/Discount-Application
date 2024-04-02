@@ -1,3 +1,4 @@
+import 'package:discount_app/core/theme/app_pallete.dart';
 import 'package:discount_app/features/discount/data/discount_repository.dart';
 import 'package:discount_app/features/discount/domain/discount_calculator.dart';
 import 'package:discount_app/features/discount/domain/discount_campaign.dart';
@@ -25,19 +26,147 @@ class _DiscountPageState extends State<DiscountPage> {
   bool _isOnTop2Selected = false;
   bool _isSeasonalSelected = false;
   double _finalPrice = 0.0;
+  Set<Item> _disabledItems = {};
+
+  Map<Item, int> _getSelectedItemsCount() {
+    Map<Item, int> itemCountMap = {};
+    for (var item in _selectedItems) {
+      itemCountMap[item] = (itemCountMap[item] ?? 0) + 1;
+    }
+    return itemCountMap;
+  }
+
+  void _showSelectedItemsModal() {
+    Map<String, int> itemCountMap = {};
+    for (var item in _selectedItems) {
+      itemCountMap[item.name] = (itemCountMap[item.name] ?? 0) + 1;
+    }
+
+    double totalPrice = 0;
+    for (var item in _selectedItems) {
+      totalPrice += item.price;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setState) {
+            return Container(
+              padding: EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Selected Items',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  Expanded(
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: itemCountMap.length,
+                      itemBuilder: (context, index) {
+                        String itemName = itemCountMap.keys.elementAt(index);
+                        int count = itemCountMap[itemName] ?? 0;
+                        Item item = _selectedItems
+                            .firstWhere((item) => item.name == itemName);
+                        return count > 0
+                            ? ListTile(
+                                title: Text(itemName),
+                                subtitle: Text('Price: ${item.price} THB'),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      icon: Icon(Icons.remove),
+                                      onPressed: () {
+                                        setState(() {
+                                          if (count > 1) {
+                                            itemCountMap[itemName] = count - 1;
+                                            totalPrice -= item.price;
+                                            _selectedItems.remove(item);
+                                          } else {
+                                            itemCountMap.remove(itemName);
+                                            totalPrice -= item.price;
+                                            _selectedItems.remove(item);
+                                          }
+                                        });
+                                      },
+                                    ),
+                                    Text(
+                                      '$count',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: AppPallete.positiveText,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    IconButton(
+                                      icon: Icon(Icons.add),
+                                      onPressed: () {
+                                        setState(() {
+                                          itemCountMap[itemName] = count + 1;
+                                          totalPrice += item.price;
+                                          _selectedItems.add(item);
+                                        });
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : SizedBox.shrink();
+                      },
+                    ),
+                  ),
+                  Container(
+                    alignment: Alignment.topLeft,
+                    child: Padding(
+                      padding: EdgeInsets.only(left: 18),
+                      child: Text(
+                        'Total Price: ${totalPrice.toStringAsFixed(2)} THB',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: AppPallete.greyColor,
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  ElevatedButton(
+                    child: Text('Close'),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      setState(() {});
+                    },
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    ).then((_) {
+      setState(() {});
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Apply Discounts'),
+        title: Text('Discount Application'),
         actions: [
           Stack(
             children: [
               IconButton(
                 icon: Icon(Icons.shopping_basket),
                 onPressed: () {
-                  // TODO: Navigate to the basket page
+                  _showSelectedItemsModal();
                 },
               ),
               if (_selectedItems.isNotEmpty)
@@ -77,10 +206,14 @@ class _DiscountPageState extends State<DiscountPage> {
               future: _discountRepository.loadData(),
               builder: (context, snapshot) {
                 if (snapshot.hasData) {
-                  List<Item> items = (snapshot.data?['items'] as List<dynamic>?)
-                          ?.map((item) => Item.fromJson(item))
-                          .toList() ??
-                      [];
+                  List<Item> allItems =
+                      (snapshot.data?['items'] as List<dynamic>?)
+                              ?.map((item) => Item.fromJson(item))
+                              .toList() ??
+                          [];
+                  List<Item> availableItems = allItems
+                      .where((item) => !_selectedItems.contains(item))
+                      .toList();
                   List<DiscountCampaign> campaigns = (snapshot
                               .data?['discountCampaigns'] as List<dynamic>?)
                           ?.map(
@@ -88,30 +221,48 @@ class _DiscountPageState extends State<DiscountPage> {
                           .toList() ??
                       [];
                   Set<String> itemCategories =
-                      items.map((item) => item.category).toSet();
-
+                      allItems.map((item) => item.category).toSet();
                   return SingleChildScrollView(
                     child: Column(
                       children: [
                         ListView.builder(
                           shrinkWrap: true,
-                          physics: NeverScrollableScrollPhysics(),
-                          itemCount: items.length,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: availableItems.length,
                           itemBuilder: (context, index) {
-                            Item item = items[index];
+                            Item item = availableItems[index];
+                            bool isSelected = _selectedItems.contains(item);
                             return CheckboxListTile(
-                              title: Text(item.name),
-                              subtitle: Text('Price: ${item.price} THB'),
-                              value: _selectedItems.contains(item),
-                              onChanged: (selected) {
-                                setState(() {
-                                  if (selected!) {
-                                    _selectedItems.add(item);
-                                  } else {
-                                    _selectedItems.remove(item);
-                                  }
-                                });
-                              },
+                              value: isSelected,
+                              onChanged: isSelected
+                                  ? null
+                                  : (value) {
+                                      setState(() {
+                                        if (value ?? false) {
+                                          _selectedItems.add(item);
+                                        }
+                                      });
+                                    },
+                              title: Text(
+                                item.name,
+                                style: TextStyle(
+                                  decoration: isSelected
+                                      ? TextDecoration.lineThrough
+                                      : TextDecoration.none,
+                                ),
+                              ),
+                              subtitle: Text(
+                                'Price: ${item.price} THB',
+                                style: TextStyle(
+                                  decoration: isSelected
+                                      ? TextDecoration.lineThrough
+                                      : TextDecoration.none,
+                                ),
+                              ),
+                              activeColor:
+                                  isSelected ? Colors.grey : Colors.blue,
+                              checkColor:
+                                  isSelected ? Colors.grey[300] : Colors.white,
                             );
                           },
                         ),
