@@ -1,0 +1,60 @@
+{
+  "items": [
+    {
+      "id": 1,
+      "name": "T-Shirt",
+      "price": 350.0,
+      "category": "Clothing"
+    },
+    {
+      "id": 2,
+      "name": "Hoodie",
+      "price": 700.0,
+      "category": "Clothing"
+    },
+    {
+      "id": 3,
+      "name": "Watch",
+      "price": 850.0,
+      "category": "Accessories"
+    },
+    {
+      "id": 4,
+      "name": "Bag",
+      "price": 640.0,
+      "category": "Accessories"
+    },
+    {
+      "id": 5,
+      "name": "Hat",
+      "price": 250.0,
+      "category": "Clothing"
+    },
+    {
+      "id": 6,
+      "name": "Belt",
+      "price": 230.0,
+      "category": "Accessories"
+    }
+  ],
+  "discountCampaigns": [
+    {
+      "id": 1,
+      "name": "Discount 120",
+      "category": "Coupon",
+      "discountRules": {
+        "type": "fixed",
+        "amount": 120
+      }
+    },
+    {
+      "id": 2,
+      "name": "Discount 20%",
+      "category": "Coupon",
+      "discountRules": {
+        "type": "percentage",
+        "percentage": 20
+      }
+    }
+  ]
+}
