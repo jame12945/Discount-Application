@@ -1,16 +1,3 @@
-# discount_app
-
-A new Flutter project.
-
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+# Discount Application
+### Recommend : Samsung galxy s10 Emulator
+![image](https://github.com/jame12945/Discount-Application/assets/69070123/5e02acca-db3c-485a-9c0c-7eac412aba77)
