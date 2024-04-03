@@ -18,7 +18,6 @@ class _DiscountPageState extends State<DiscountPage> {
   String _selectedOnTopDiscount = '';
   double _percentageDiscount = 0.0;
   String _selectedItemCategory = '';
-  String _appliedDiscountText = '';
   int _customerPoints = 0;
   int _everyXThb = 0;
   int? _hoveredIndex;
@@ -30,9 +29,6 @@ class _DiscountPageState extends State<DiscountPage> {
   bool _isDropdownVisible = false;
   List<String> _appliedDiscountTexts = [];
   double _finalPrice = 0.0;
-  double _newFinalPrice = 0.0;
-
-  Set<Item> _disabledItems = {};
 
   Map<Item, int> _getSelectedItemsCount() {
     Map<Item, int> itemCountMap = {};
@@ -105,10 +101,6 @@ class _DiscountPageState extends State<DiscountPage> {
       selectedCampaigns,
       _selectedItems,
     );
-
-    setState(() {
-      _newFinalPrice = finalPrice;
-    });
   }
 
   void _showSelectedItemsModal() {
@@ -239,14 +231,19 @@ class _DiscountPageState extends State<DiscountPage> {
                                     IconButton(
                                       icon: Icon(
                                         Icons.add_circle,
-                                        color: Colors.green,
+                                        color: _appliedDiscountTexts.length == 3
+                                            ? Colors.grey
+                                            : Colors.green,
                                       ),
-                                      onPressed: () {
-                                        setState(() {
-                                          _isDropdownVisible =
-                                              !_isDropdownVisible;
-                                        });
-                                      },
+                                      onPressed:
+                                          _appliedDiscountTexts.length == 3
+                                              ? null
+                                              : () {
+                                                  setState(() {
+                                                    _isDropdownVisible =
+                                                        !_isDropdownVisible;
+                                                  });
+                                                },
                                     ),
                                   ],
                                 ),
@@ -285,10 +282,14 @@ class _DiscountPageState extends State<DiscountPage> {
                                 right: 16,
                                 bottom: 4,
                               ),
-                              value: _selectedCategory.isNotEmpty
+                              value: _selectedCategory.isNotEmpty &&
+                                      !_appliedDiscountTexts
+                                          .contains('Used $_selectedCategory')
                                   ? _selectedCategory
                                   : null,
                               items: ['Coupon', 'On Top', 'Seasonal']
+                                  .where((category) => !_appliedDiscountTexts
+                                      .contains('Used $category'))
                                   .map((category) {
                                 return DropdownMenuItem<String>(
                                   value: category,
@@ -296,15 +297,19 @@ class _DiscountPageState extends State<DiscountPage> {
                                 );
                               }).toList(),
                               onChanged: (value) {
-                                setState(() {
-                                  _selectedCategory = value!;
-                                  _isCouponSelected =
-                                      _selectedCategory == 'Coupon';
-                                  _isOnTop1Selected = false;
-                                  _isOnTop2Selected = false;
-                                  _isSeasonalSelected =
-                                      _selectedCategory == 'Seasonal';
-                                });
+                                if (value != null &&
+                                    !_appliedDiscountTexts
+                                        .contains('Used $value')) {
+                                  setState(() {
+                                    _selectedCategory = value;
+                                    _isCouponSelected =
+                                        _selectedCategory == 'Coupon';
+                                    _isOnTop1Selected = false;
+                                    _isOnTop2Selected = false;
+                                    _isSeasonalSelected =
+                                        _selectedCategory == 'Seasonal';
+                                  });
+                                }
                               },
                               decoration:
                                   InputDecoration(labelText: 'Select Category'),
@@ -320,8 +325,7 @@ class _DiscountPageState extends State<DiscountPage> {
                                     setState(() {
                                       _isOnTop1Selected = selected!;
                                       _isOnTop2Selected = false;
-                                      _updateFinalPrice(
-                                          campaigns); // Call the new method to update the final price
+                                      _updateFinalPrice(campaigns);
                                     });
                                   },
                                 ),
@@ -332,8 +336,7 @@ class _DiscountPageState extends State<DiscountPage> {
                                     setState(() {
                                       _isOnTop2Selected = selected!;
                                       _isOnTop1Selected = false;
-                                      _updateFinalPrice(
-                                          campaigns); // Call the new method to update the final price
+                                      _updateFinalPrice(campaigns);
                                     });
                                   },
                                 ),
@@ -475,100 +478,95 @@ class _DiscountPageState extends State<DiscountPage> {
                                 ],
                               ),
                             ),
-                          ElevatedButton(
-                            child: Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 10),
-                              child: Text(
-                                'Confirm',
-                                style: TextStyle(
-                                  color: Colors.green,
+                          if (_isDropdownVisible)
+                            ElevatedButton(
+                              child: Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 10),
+                                child: Text(
+                                  'Confirm',
+                                  style: TextStyle(
+                                    color: Colors.green,
+                                  ),
                                 ),
                               ),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                            ),
-                            onPressed: () {
-                              List<DiscountCampaign> selectedCampaigns = [];
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.white,
+                              ),
+                              onPressed: () {
+                                List<DiscountCampaign> selectedCampaigns = [];
 
-                              if (_isCouponSelected) {
-                                if (_isOnTop1Selected) {
-                                  selectedCampaigns.add(campaigns.firstWhere(
-                                      (campaign) =>
-                                          campaign.name == 'Discount 120'));
-                                } else if (_isOnTop2Selected) {
-                                  selectedCampaigns.add(campaigns.firstWhere(
-                                      (campaign) =>
-                                          campaign.name == 'Discount 20%'));
-                                }
-                              } else if (_selectedCategory == 'On Top') {
-                                if (_selectedOnTopDiscount ==
-                                    'Percentage discount by item category') {
-                                  selectedCampaigns.add(
-                                    DiscountCampaign(
-                                      id: 0,
-                                      name:
-                                          'Percentage discount by item category',
-                                      category: 'On Top',
-                                      discountRules: DiscountRules(
-                                        type: 'percentage',
-                                        percentage: _percentageDiscount,
-                                        itemCategory: _selectedItemCategory,
-                                      ),
-                                    ),
-                                  );
-                                } else if (_selectedOnTopDiscount ==
-                                    'Discount by points') {
-                                  selectedCampaigns.add(
-                                    DiscountCampaign(
-                                      id: 0,
-                                      name: 'Discount by points',
-                                      category: 'On Top',
-                                      discountRules: DiscountRules(
-                                        type: 'fixed',
-                                        amount: _customerPoints.toDouble(),
-                                      ),
-                                    ),
-                                  );
-                                }
-                              } else if (_isSeasonalSelected) {
-                                selectedCampaigns.add(
-                                  DiscountCampaign(
-                                    id: 0,
-                                    name: 'Seasonal',
-                                    category: 'Seasonal',
-                                    discountRules: DiscountRules(
-                                      type: 'fixed',
-                                      everyX: _everyXThb,
-                                      discount: _discountYThb,
-                                    ),
-                                  ),
-                                );
-                              }
-
-                              double finalPrice =
-                                  _discountCalculator.calculateFinalPrice(
-                                _finalPrice != 0.0 ? _finalPrice : totalPrice,
-                                selectedCampaigns,
-                                _selectedItems,
-                              );
-
-                              setState(() {
-                                _finalPrice = finalPrice;
-                                _isDropdownVisible = !_isDropdownVisible;
                                 if (_isCouponSelected) {
+                                  if (_isOnTop1Selected) {
+                                    selectedCampaigns.add(campaigns.firstWhere(
+                                        (campaign) =>
+                                            campaign.name == 'Discount 120'));
+                                  } else if (_isOnTop2Selected) {
+                                    selectedCampaigns.add(campaigns.firstWhere(
+                                        (campaign) =>
+                                            campaign.name == 'Discount 20%'));
+                                  }
                                   _appliedDiscountTexts.add('Used Coupon');
                                 } else if (_selectedCategory == 'On Top') {
-                                  _appliedDiscountTexts
-                                      .add('Used On Top Discount');
+                                  if (_selectedOnTopDiscount ==
+                                      'Percentage discount by item category') {
+                                    selectedCampaigns.add(
+                                      DiscountCampaign(
+                                        id: 0,
+                                        name:
+                                            'Percentage discount by item category',
+                                        category: 'On Top',
+                                        discountRules: DiscountRules(
+                                          type: 'percentage',
+                                          percentage: _percentageDiscount,
+                                          itemCategory: _selectedItemCategory,
+                                        ),
+                                      ),
+                                    );
+                                  } else if (_selectedOnTopDiscount ==
+                                      'Discount by points') {
+                                    selectedCampaigns.add(
+                                      DiscountCampaign(
+                                        id: 0,
+                                        name: 'Discount by points',
+                                        category: 'On Top',
+                                        discountRules: DiscountRules(
+                                          type: 'fixed',
+                                          amount: _customerPoints.toDouble(),
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                  _appliedDiscountTexts.add('Used On Top');
                                 } else if (_isSeasonalSelected) {
-                                  _appliedDiscountTexts
-                                      .add('Used Seasonal Discount');
+                                  selectedCampaigns.add(
+                                    DiscountCampaign(
+                                      id: 0,
+                                      name: 'Seasonal',
+                                      category: 'Seasonal',
+                                      discountRules: DiscountRules(
+                                        type: 'fixed',
+                                        everyX: _everyXThb,
+                                        discount: _discountYThb,
+                                      ),
+                                    ),
+                                  );
+                                  _appliedDiscountTexts.add('Used Seasonal');
                                 }
-                              });
-                            },
-                          ),
+
+                                double finalPrice =
+                                    _discountCalculator.calculateFinalPrice(
+                                  _finalPrice != 0.0 ? _finalPrice : totalPrice,
+                                  selectedCampaigns,
+                                  _selectedItems,
+                                );
+
+                                setState(() {
+                                  _finalPrice = finalPrice;
+                                  _isDropdownVisible = !_isDropdownVisible;
+                                });
+                              },
+                            ),
                           SizedBox(height: 16),
                           Text(
                             _finalPrice != 0.0
@@ -698,10 +696,8 @@ class _DiscountPageState extends State<DiscountPage> {
                             Item item = availableItems[index];
                             bool isSelected = _selectedItems.contains(item);
                             return MouseRegion(
-                              cursor: SystemMouseCursors
-                                  .click, // Change the cursor to hand pointer
+                              cursor: SystemMouseCursors.click,
                               onHover: (event) {
-                                // Change the background color on hover
                                 setState(() {
                                   _hoveredIndex = index;
                                 });
