@@ -1,5 +1,5 @@
 # Discount Application
-### Recommend : Samsung galxy s10 Emulator
+### Recommend : Samsung galxy s10 (Emulator)
 ### Run : flutter run
 #### Reveiw of application on Emulator
 ####  Select Item -> Click on Basket Icon ->Click 'Select Discoun't -> Select category ->Enter Input -> Confirm
