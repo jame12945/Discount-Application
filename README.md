@@ -2,6 +2,7 @@
 ### Recommend : Samsung galxy s10 Emulator
 ### Run : flutter run
 #### Reveiw of application on Emulator
+####  Select Item -> Click on Basket Icon ->Click 'Select Discoun't -> Select category ->Enter Input -> Confirm
 ![image](https://github.com/jame12945/Discount-Application/assets/69070123/5e02acca-db3c-485a-9c0c-7eac412aba77)
 ![image](https://github.com/jame12945/Discount-Application/assets/69070123/58cb7311-08a3-4b8d-87b3-7ff0267ecaf6)
 ![image](https://github.com/jame12945/Discount-Application/assets/69070123/30f511d7-15b9-49d7-80b9-51cb3088c1c9)
