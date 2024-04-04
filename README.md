@@ -1,16 +1,11 @@
-# discount_app
+# Discount Application
+### Recommend : Samsung galxy s10 (Emulator)
+### Run : flutter run
+#### Reveiw of application on Emulator
+####  Select Item -> Click on Basket Icon ->Click 'Select Discoun't -> Select category ->Enter Input -> Confirm
+![image](https://github.com/jame12945/Discount-Application/assets/69070123/5e02acca-db3c-485a-9c0c-7eac412aba77)
+![image](https://github.com/jame12945/Discount-Application/assets/69070123/58cb7311-08a3-4b8d-87b3-7ff0267ecaf6)
+![image](https://github.com/jame12945/Discount-Application/assets/69070123/30f511d7-15b9-49d7-80b9-51cb3088c1c9)
+![image](https://github.com/jame12945/Discount-Application/assets/69070123/9912c7eb-9e70-4707-a47f-d1f0024b79fc)
 
-A new Flutter project.
 
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
