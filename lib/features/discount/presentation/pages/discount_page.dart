@@ -1,4 +1,4 @@
-import 'package:discount_app/features/discount/presentation/widgets/discoun_bar.dart';
+import 'package:discount_app/features/discount/presentation/widgets/discount_bar.dart';
 import 'package:discount_app/features/discount/presentation/widgets/discount_body.dart';
 import 'package:discount_app/features/discount/presentation/widgets/discount_model.dart';
 import 'package:flutter/material.dart';

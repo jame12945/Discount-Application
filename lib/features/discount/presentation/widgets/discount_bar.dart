@@ -73,6 +73,10 @@ class DiscountAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   void _showSelectedItemsModal(
       BuildContext context, DiscountModel discountModel) {
+    Map<String, int> itemCountMap = {};
+    for (var item in discountModel.selectedItems) {
+      itemCountMap[item.name] = (itemCountMap[item.name] ?? 0) + 1;
+    }
     showModalBottomSheet(
       context: context,
       builder: (BuildContext context) {
@@ -91,11 +95,6 @@ class DiscountAppBar extends StatelessWidget implements PreferredSizeWidget {
                   double totalPrice = 0;
                   for (var item in discountModel.selectedItems) {
                     totalPrice += item.price;
-                  }
-                  Map<String, int> itemCountMap = {};
-                  for (var item in discountModel.selectedItems) {
-                    itemCountMap[item.name] =
-                        (itemCountMap[item.name] ?? 0) + 1;
                   }
 
                   return SingleChildScrollView(
@@ -125,49 +124,60 @@ class DiscountAppBar extends StatelessWidget implements PreferredSizeWidget {
                                 String itemName =
                                     itemCountMap.keys.elementAt(index);
                                 int count = itemCountMap[itemName] ?? 0;
-                                Item item = discountModel.selectedItems[index];
-                                return ListTile(
-                                  title: Text(item.name),
-                                  subtitle: Text('Price: ${item.price} THB'),
-                                  trailing: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      IconButton(
-                                        icon: Icon(Icons.remove),
-                                        onPressed: () {
-                                          setState(() {
-                                            if (count > 1) {
-                                              itemCountMap[itemName] =
-                                                  count - 1;
-                                              totalPrice -= item.price;
-                                              discountModel.removeItem(item);
-                                            } else {
-                                              itemCountMap.remove(itemName);
-                                              totalPrice -= item.price;
-                                              discountModel.removeItem(item);
-                                            }
-                                          });
-                                        },
-                                      ),
-                                      Text(
-                                        '$count',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: AppPallete.positiveText,
-                                          fontSize: 14,
+                                Item item = discountModel.selectedItems
+                                    .firstWhere(
+                                        (item) => item.name == itemName);
+                                return count > 0
+                                    ? ListTile(
+                                        title: Text(itemName),
+                                        subtitle:
+                                            Text('Price: ${item.price} THB'),
+                                        trailing: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            IconButton(
+                                              icon: Icon(Icons.remove),
+                                              onPressed: () {
+                                                setState(() {
+                                                  if (count > 1) {
+                                                    itemCountMap[itemName] =
+                                                        count - 1;
+                                                    totalPrice -= item.price;
+                                                    discountModel
+                                                        .removeItem(item);
+                                                  } else {
+                                                    itemCountMap
+                                                        .remove(itemName);
+                                                    totalPrice -= item.price;
+                                                    discountModel
+                                                        .removeItem(item);
+                                                  }
+                                                });
+                                              },
+                                            ),
+                                            Text(
+                                              '$count',
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                color: AppPallete.positiveText,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                            IconButton(
+                                              icon: Icon(Icons.add),
+                                              onPressed: () {
+                                                setState(() {
+                                                  itemCountMap[itemName] =
+                                                      count + 1;
+                                                  totalPrice += item.price;
+                                                  discountModel.addItem(item);
+                                                });
+                                              },
+                                            ),
+                                          ],
                                         ),
-                                      ),
-                                      IconButton(
-                                        icon: Icon(Icons.add),
-                                        onPressed: () {
-                                          setState(() {
-                                            discountModel.addItem(item);
-                                          });
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                );
+                                      )
+                                    : SizedBox.shrink();
                               },
                             ),
                           ),
