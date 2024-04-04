@@ -1,5 +1,3 @@
-import 'package:discount_app/features/discount/domain/items/item.dart';
-
 class DiscountRules {
   final String type;
   final double? amount;

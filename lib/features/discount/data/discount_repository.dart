@@ -13,7 +13,7 @@ class DiscountRepository {
       };
     } catch (e) {
       print('Error loading data: $e');
-      // Return an empty map with empty lists
+
       return {'items': [], 'discountCampaigns': []};
     }
   }

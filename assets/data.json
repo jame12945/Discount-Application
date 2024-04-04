@@ -40,20 +40,20 @@
   "discountCampaigns": [
     {
       "id": 1,
-      "name": "Discount 120",
+      "name": "Discount 50",
       "category": "Coupon",
       "discountRules": {
         "type": "fixed",
-        "amount": 120
+        "amount": 50
       }
     },
     {
       "id": 2,
-      "name": "Discount 20%",
+      "name": "Discount 10%",
       "category": "Coupon",
       "discountRules": {
         "type": "percentage",
-        "percentage": 20
+        "percentage": 10
       }
     }
   ]
